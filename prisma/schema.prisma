@@ -1,0 +1,188 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/properly_inspected_website/nextjs_space/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+// NextAuth models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          String    @default("admin")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  blogPosts     BlogPost[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Blog models
+model BlogPost {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  excerpt     String?  @db.Text
+  content     String   @db.Text
+  coverImage  String?
+  category    String
+  tags        String[]
+  metaTitle   String?
+  metaDescription String? @db.Text
+  published   Boolean  @default(false)
+  featured    Boolean  @default(false)
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  publishedAt DateTime?
+
+  @@index([slug])
+  @@index([category])
+  @@index([published])
+  @@index([createdAt])
+}
+
+// Service models
+model Service {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  shortDescription String  @db.Text
+  fullDescription  String  @db.Text
+  icon            String?
+  featured        Boolean  @default(false)
+  order           Int      @default(0)
+  benefits        String[] @default([])
+  process         String[] @default([])
+  pricing         String?
+  duration        String?
+  metaTitle       String?
+  metaDescription String?  @db.Text
+  published       Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([slug])
+  @@index([featured])
+  @@index([published])
+}
+
+// Contact form submissions
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  service   String?
+  subject   String?
+  message   String   @db.Text
+  status    String   @default("new") // new, read, contacted, closed
+  source    String   @default("website") // website, location page, service page, etc.
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+// Testimonials from Google Reviews
+model Testimonial {
+  id          String   @id @default(cuid())
+  reviewerName String
+  rating      Int      @default(5)
+  reviewText  String   @db.Text
+  service     String?
+  location    String?
+  date        DateTime
+  source      String   @default("google") // google, website, agent, etc.
+  featured    Boolean  @default(false)
+  verified    Boolean  @default(true)
+  badge       String?  // e.g., "Real Estate Professional"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([featured])
+  @@index([rating])
+  @@index([date])
+}
+
+// FAQ
+model FAQ {
+  id        String   @id @default(cuid())
+  question  String   @db.Text
+  answer    String   @db.Text
+  category  String
+  order     Int      @default(0)
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([category])
+  @@index([published])
+  @@index([order])
+}
+
+// Location landing pages data
+model Location {
+  id          String   @id @default(cuid())
+  city        String
+  state       String   @default("FL")
+  slug        String   @unique
+  county      String?
+  description String   @db.Text
+  neighborhoods String[] @default([])
+  commonIssues  String[] @default([])
+  metaTitle     String?
+  metaDescription String? @db.Text
+  published     Boolean  @default(true)
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([slug])
+  @@index([published])
+}
